@@ -1,0 +1,171 @@
+﻿@page "/asteroiddodge"
+@inject HttpClient Http
+@using Microsoft.JSInterop
+@inject IJSRuntime JSRuntime
+
+<h1>Codepalousa 2019</h1>
+<p>@a</p>
+<div style="border:solid;border-width:medium;width:205px">
+    <canvas id="theCanvas" @ref="theCanvas" width="200" height="100" style="border:2px; border-color:black"></canvas>
+    <br />
+</div>
+
+<p>Score: <span id="spScore" @ref="spScore">0</span></p>
+<br />
+
+@code {
+
+ElementRef theCanvas;
+ElementRef spScore;
+
+static string a = "-Asteroid Dodge-";
+static int score = 0;
+static int shipX = 95;
+static bool start = false;
+static bool dead = false;
+static int missleX = 0;
+static int missleY = 1000;
+static bool missleActive = false;
+static int explosionDuration = 0;
+static int explosionX = 0;
+static int explosionY = 0;
+
+static Asteroid[] Asteroids = new Asteroid[7];
+
+
+protected override void OnInit()
+{
+    System.Timers.Timer aTimer = new System.Timers.Timer();
+    aTimer.Elapsed += new System.Timers.ElapsedEventHandler(OnTimedEvent);
+    aTimer.Interval = 50;
+    aTimer.Enabled = true;
+    aTimer.Start();
+
+    Random r = new Random();
+
+    Asteroids[0] = new Asteroid(r.Next(0, 100), r.Next(-200, -100), r.Next(2, 20));
+    Asteroids[1] = new Asteroid(r.Next(0, 100), r.Next(-200, -100), r.Next(2, 20));
+    Asteroids[2] = new Asteroid(r.Next(0, 100), r.Next(-200, -100), r.Next(2, 20));
+    Asteroids[3] = new Asteroid(r.Next(0, 150), r.Next(-200, -100), r.Next(2, 20));
+    Asteroids[4] = new Asteroid(r.Next(0, 200), r.Next(-200, -100), r.Next(2, 20));
+    Asteroids[5] = new Asteroid(r.Next(0, 200), r.Next(-200, -100), r.Next(2, 20));
+    Asteroids[6] = new Asteroid(r.Next(0, 200), r.Next(-200, -100), r.Next(2, 20));
+
+    JSRuntime.InvokeAsync<object>("DrawStart", theCanvas);
+}
+
+[JSInvokable]
+public static void HandleKeyPress(string value)
+{
+    if (value == "ArrowLeft")
+    {
+        if (shipX > 10) shipX -= 3;
+    }
+    if (value == "ArrowRight")
+    {
+        if (shipX < 190) shipX += 3;
+    }
+    if (value == "ArrowUp" && !missleActive)
+    {
+        missleActive = true;
+        missleX = shipX - 3;
+        missleY = 55;
+        score -= 10;
+    }
+    if (value == "Enter")
+    {
+        start = true;
+        dead = false;
+        score = 0;
+        foreach (Asteroid i in Asteroids)
+        {
+            i.Y -= 100;
+        }
+    }
+}
+
+private void OnTimedEvent(object source, System.Timers.ElapsedEventArgs e)
+{
+    if (!dead && start)
+    {
+        Random r = new Random();
+        JSRuntime.InvokeAsync<object>("BlazorDemo.drawShip", theCanvas, shipX, 65);
+        if (missleActive)
+        {
+            JSRuntime.InvokeAsync<object>("BlazorDemo.drawMissle", theCanvas, missleX, missleY);
+        }
+        if(explosionDuration > 0)
+        {
+            JSRuntime.InvokeAsync<object>("BlazorDemo.drawExplosion", theCanvas, explosionX, explosionY);
+            explosionDuration -= 1;
+        }
+
+        foreach (Asteroid i in Asteroids)
+        {
+            //Check Colision
+            if ((i.Y + i.Radius) > 67 && (i.Y - i.Radius) < 83 && (i.X - i.Radius) < (shipX + 10) && (i.X + i.Radius) > (shipX - 10))
+            {
+                missleActive = false;
+                dead = true;
+            }
+
+            //Check Missle Colission
+            if (missleActive && (i.X - i.Radius) < (missleX + 6) && (i.X + i.Radius) > (missleX) && (i.Y - i.Radius) < missleY && (i.Y + i.Radius) > missleY)
+            {
+                missleActive = false;
+                explosionX = i.X;
+                explosionY = i.Y;
+                explosionDuration = 15;
+                i.Y = r.Next(-100, -20);
+                i.X = r.Next(5, 195);
+                i.Radius = r.Next(5, 20);
+            }
+
+            //Drop Asteroids
+            if (i.Y < 120 && !dead)
+            {
+                i.Y += 2;
+            }
+            else
+            {
+                i.Y = r.Next(-100, -20);
+                i.X = r.Next(5, 195);
+                i.Radius = r.Next(5, 20);
+                if (!dead)
+                {
+                    score++;
+                }
+            }
+            JSRuntime.InvokeAsync<object>("BlazorDemo.drawAsteroid", theCanvas, i.X, i.Y, i.Radius);
+        }
+
+        if (missleActive)
+        {
+            missleY = missleY - 3;
+        }
+        if(missleY < -10)
+        {
+            missleActive = false;
+        }
+    }
+    else
+    {
+        if (start)
+        {
+            JSRuntime.InvokeAsync<object>("BlazorDemo.drawDead", theCanvas);
+            shipX = 95;
+        }
+        else
+        {
+            JSRuntime.InvokeAsync<object>("DrawStart", theCanvas);
+        }
+    }
+    JSRuntime.InvokeAsync<object>("BlazorDemo.updateScore", spScore, score);
+}
+
+void Quit()
+{
+    dead = true;
+}
+
+}
