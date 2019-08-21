@@ -6,17 +6,17 @@
 <h1>Codepalousa 2019</h1>
 <p>@a</p>
 <div style="border:solid;border-width:medium;width:205px">
-    <canvas id="theCanvas" @ref="theCanvas" width="200" height="100" style="border:2px; border-color:black"></canvas>
+    <canvas id="theCanvas" @ref:suppressField @ref="theCanvas" width="200" height="100" style="border:2px; border-color:black"></canvas>
     <br />
 </div>
 
-<p>Score: <span id="spScore" @ref="spScore">0</span></p>
+<p>Score: <span id="spScore" @ref:suppressField @ref="spScore">0</span></p>
 <br />
 
 @code {
 
-ElementRef theCanvas;
-ElementRef spScore;
+ElementReference  theCanvas;
+ElementReference  spScore;
 
 static string a = "-Asteroid Dodge-";
 static int score = 0;
@@ -33,7 +33,7 @@ static int explosionY = 0;
 static Asteroid[] Asteroids = new Asteroid[7];
 
 
-protected override void OnInit()
+protected override void OnInitialized()
 {
     System.Timers.Timer aTimer = new System.Timers.Timer();
     aTimer.Elapsed += new System.Timers.ElapsedEventHandler(OnTimedEvent);

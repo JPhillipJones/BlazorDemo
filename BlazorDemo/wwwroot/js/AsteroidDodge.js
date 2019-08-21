@@ -60,10 +60,7 @@
     },
     updateScore: function (element, score) {
         element.innerHTML = score;
-
     },
-
-
 
     onKeyDown: function (theKey) {
         DotNet.invokeMethodAsync('BlazorDemo', 'HandleKeyPress', theKey);
